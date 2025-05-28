@@ -1,1 +1,5 @@
+# node.js module
 /node_modules
+
+# out directory
+/dist
