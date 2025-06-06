@@ -1,4 +1,5 @@
 import net from 'net';
+const { parseCommand, executeCommand } = require('./core');
 
 const logger = require("./logger")("server");
 
@@ -8,13 +9,21 @@ const host = "127.0.0.1";
 
 server.on( "connection", (socket: any) => {
   logger.log("Client Connected");
-
+  
   socket.on( "data", (data: { toString: () => string; }) => {
-    const req = data.toString();
-    logger.log("Request Data\n" + req);
+    let res;
+    try {
+      const { command, args } = parseCommand(data);
+      
+      res = executeCommand(command, args);
+    } catch (error) {
+      logger.error(error);
+      res = "-ERR unknown command\r\n"
+    }
 
-    socket.write("+OK\r\n");
-    // socket.write("res: " + req );
+    const req = data.toString();
+
+    socket.write(res);
   })
 
   socket.on( "end", () => {

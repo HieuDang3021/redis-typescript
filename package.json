@@ -4,18 +4,18 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "node dist/server.test.js",
-    "start": "nodemon server.js",
-    "dev": "npx tsc && nodemon dist/server.js"
+    "test": "node dist/test/server.test.js",
+    "start": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
+    "dev": "npx tsc && nodemon dist/server.js",
+    "logger": "DEBUG=core nodemon --watch src --ext ts --exec ts-node src/server.ts"
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "nodemon": "^3.1.10"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^22.15.23",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "nodemon": "^3.1.10"
   }
 }
