@@ -20,6 +20,9 @@ const logger = (namespace: string) => {
     }
 
     if (debugNamespaces.includes("*") || debugNamespaces.includes(namespace)){
+      if(mode === "warn"){
+      console.error('\x1b[33m%s\x1b[0m', logMessage);
+    } else
       (console[mode] as (...args: any[]) => void)(logMessage);
     }
   };

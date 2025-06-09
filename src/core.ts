@@ -1,8 +1,6 @@
-import { stringify } from "querystring";
+const logger = require("./utils/logger")("core")
 
-const logger = require("./logger")("core")
-
-type Command = "GET" | "SET" | "DEL" | "EXPIRE" | "COMMAND";
+type Command = "COMMAND" | "GET" | "SET" | "DEL" | "EXPIRE" | "TTL" | "INCR" | "DECR";
 type StoreProps = {
   type: "string",
   value: string
@@ -85,6 +83,61 @@ const commandHandlers: Record<Command, (args: string[]) => void> = {
 
     return ":1\r\n";
   },
+  TTL: (args) => {
+    if (args.length < 1) {
+      return "-ERR wrong number of arguments for 'TTL' command\r\n";
+    }
+    
+    const [key] = args;
+    
+    if (!store[key]) {
+      return ":-2\r\n";
+    }
+    
+    if (!expirationTimes[key]) {
+      return ":-1\r\n";
+    }
+    
+    const ttl = Math.floor((expirationTimes[key] - Date.now()) / 1000);
+    
+    return ttl > 0 ? `:${ttl}\r\n` : ":-2\r\n";
+  },
+  INCR: (args) => {
+    if (args.length < 1) {
+      return "-ERR wrong number of arguments for 'INCR' command\r\n";
+    }
+
+    const [key] = args;
+
+    if (!store[key]) {
+      return ":0\r\n";
+    } else if ( !parseInt(store[key].value, 10) ){
+      return "-ERR value is not an integer or out of range\r\n";
+    }
+
+    const value = parseInt(store[key].value, 10);
+    store[key].value = (value + 1).toString();
+    
+    return `:${value + 1}\r\n`;
+  },
+  DECR: (args) => {
+    if (args.length < 1) {
+      return "-ERR wrong number of arguments for 'DECR' command\r\n";
+    }
+
+    const [key] = args;
+
+    if (!store[key]) {
+      return ":0\r\n";
+    } else if ( !parseInt(store[key].value, 10) ){
+      return "-ERR value is not an integer or out of range\r\n";
+    }
+
+    const value = parseInt(store[key].value, 10);
+    store[key].value = (value - 1).toString();
+    
+    return `:${value - 1}\r\n`;
+  },
   COMMAND: () => "+OK\r\n",
 }
 
@@ -104,9 +157,6 @@ const parseCommand = (data: string) => {
   const lines = data.toString().split("\r\n").filter((line) => !!line);
   const command = lines[2].toUpperCase();
   const args = lines.slice(4).filter((_,index) => index%2 == 0);
-
-  // logger.log(command);
-  // logger.log(args);
 
   return { command, args };
 };

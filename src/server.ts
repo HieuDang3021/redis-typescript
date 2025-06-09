@@ -1,7 +1,7 @@
 import net from 'net';
 const { parseCommand, executeCommand } = require('./core');
 
-const logger = require("./logger")("server");
+const logger = require("./utils/logger")("server");
 
 const server = net.createServer();
 const port = 6379;
@@ -16,7 +16,7 @@ server.on( "connection", (socket: any) => {
       const { command, args } = parseCommand(data);
       
       res = executeCommand(command, args);
-    } catch (error) {
+    } catch (error) { 
       logger.error(error);
       res = "-ERR unknown command\r\n"
     }
