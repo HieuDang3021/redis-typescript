@@ -1,9 +1,17 @@
 const logger = require("./utils/logger")("core")
 
-type Command = "COMMAND" | "GET" | "SET" | "DEL" | "EXPIRE" | "TTL" | "INCR" | "DECR";
+type Command = "COMMAND" | "GET" | "SET" | "DEL" 
+                          | "EXPIRE" | "TTL" 
+                          | "INCR" | "DECR"  
+                          | "LRANGE" 
+                          | "LPUSH" | "RPUSH"
+                          | "LPOP" | "RPOP";
 type StoreProps = {
-  type: "string",
+  type: "string";
   value: string
+} | {
+  type: "list";
+  value: string[]
 };
 
 const store: Record<string, StoreProps> = {};
@@ -23,6 +31,19 @@ const checkExpire = (key: string) => {
 
   return false;
 }
+
+function getValidList(key: string): string[] | null {
+  if (
+    checkExpire(key) ||
+    !store[key] ||
+    store[key].type !== "list" ||
+    (store[key].value as string[]).length === 0
+  ) {
+    return null;
+  }
+  return store[key].value as string[];
+}
+
 
 const commandHandlers: Record<Command, (args: string[]) => void> = {
   SET: (args) => {
@@ -111,11 +132,11 @@ const commandHandlers: Record<Command, (args: string[]) => void> = {
 
     if (!store[key]) {
       return ":0\r\n";
-    } else if ( !parseInt(store[key].value, 10) ){
+    } else if ( !parseInt(store[key].value as string, 10) ){
       return "-ERR value is not an integer or out of range\r\n";
     }
 
-    const value = parseInt(store[key].value, 10);
+    const value = parseInt(store[key].value as string, 10);
     store[key].value = (value + 1).toString();
     
     return `:${value + 1}\r\n`;
@@ -124,19 +145,119 @@ const commandHandlers: Record<Command, (args: string[]) => void> = {
     if (args.length < 1) {
       return "-ERR wrong number of arguments for 'DECR' command\r\n";
     }
-
+    
     const [key] = args;
-
+    
     if (!store[key]) {
       return ":0\r\n";
-    } else if ( !parseInt(store[key].value, 10) ){
+    } else if ( !parseInt(store[key].value as string, 10) ){
       return "-ERR value is not an integer or out of range\r\n";
     }
-
-    const value = parseInt(store[key].value, 10);
+    
+    const value = parseInt(store[key].value as string, 10);
     store[key].value = (value - 1).toString();
     
     return `:${value - 1}\r\n`;
+  },
+  LRANGE: (args) => {
+    if (args.length < 3) {
+      return "-ERR wrong number of arguments for 'LRANGE' command\r\n";
+    }
+
+    const [key, start, stop] = args;
+
+    if(checkExpire(key) || !store[key] || store[key].type !== "list") {
+      return "$-1\r\n"
+    };
+
+    const list = store[key].value;
+    const startIndex = parseInt(start, 10);
+    const stopIndex = parseInt(stop, 10);
+    const range = list.slice(startIndex, stopIndex + 1);
+
+    let res = `*${range.length}\r\n`;
+
+    range.forEach((value) => {
+      res += `$${value.length}\r\n${value}\r\n`
+    })
+
+    return res;
+  },
+  LPUSH: (args) => {
+    if (args.length < 2) {
+      return "-ERR wrong number of arguments for 'LPUSH' command\r\n";
+    }
+    
+    const [key, ...values] = args;
+    
+    if (!store[key]) {
+      store[key] = { type : "list", value: []};
+    }
+    
+    if (store[key].type !== "list") {
+      return "-ERR wrong type of key\r\n"
+    }
+    
+    store[key].value.unshift(...values);
+    
+    return `:${store[key].value.length}\r\n`;
+  },
+  RPUSH: (args) => {
+    if (args.length < 2) {
+      return "-ERR wrong number of arguments for 'RPUSH' command\r\n";
+    }
+    
+    const [key, ...values] = args;
+    
+    if (!store[key]) {
+      store[key] = { type : "list", value: []};
+    }
+    
+    if (store[key].type !== "list") {
+      return "-ERR wrong type of key\r\n"
+    }
+    
+    store[key].value.push(...values);
+    
+    return `:${store[key].value.length}\r\n`;
+  },
+  LPOP: (args) => {
+    if (args.length < 1) {
+      return "-ERR wrong number of arguments for 'LPOP' command\r\n";
+    }
+
+    const [key] = args;
+
+    if (checkExpire(key) || !store[key] || store[key].type !== "list" || store[key].value.length === 0) {
+      return "$-1\r\n";
+    }
+
+    const value = (store[key].value as string[]).shift();
+
+    if (typeof value !== "string") {
+      return "$-1\r\n";
+    }
+
+    return `$${value.length}\r\n${value}\r\n`
+  },
+  RPOP: (args) => {
+    if (args.length < 1) {
+      return "-ERR wrong number of arguments for 'RPOP' command\r\n";
+    }
+
+    const [key] = args;
+
+    if (checkExpire(key) || !store[key] || store[key].type !== "list" || store[key].value.length === 0) {
+      return "$-1\r\n";
+    }
+
+    const value = (store[key].value as string[]).pop();
+
+    if (typeof value !== "string") {
+      return "$-1\r\n";
+    }
+
+    return `$${value.length}\r\n${value}\r\n`
   },
   COMMAND: () => "+OK\r\n",
 }
