@@ -2,12 +2,12 @@
   "name": "rebuild-redis-javascript",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "src/server.ts",
   "scripts": {
     "test": "ts-node src/test/server.test.ts",
-    "start": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
+    "start": "nodemon --watch src  --ext ts --exec ts-node src/server.ts",
     "dev": "npx tsc && nodemon dist/server.js",
-    "logger": "DEBUG=core nodemon --watch src --ext ts --exec ts-node src/server.ts"
+    "logger": "DEBUG=core npm start"
   },
   "author": "",
   "license": "ISC",

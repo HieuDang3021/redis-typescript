@@ -1,21 +1,12 @@
-const logger = require("./utils/logger")("core")
+import loggerFactory from "./utils/logger";
+import config from "./config.json";
+import persistence from "./persistence";
 
-type Command = "COMMAND" | "GET" | "SET" | "DEL" 
-                          | "EXPIRE" | "TTL" 
-                          | "INCR" | "DECR"  
-                          | "LRANGE" 
-                          | "LPUSH" | "RPUSH"
-                          | "LPOP" | "RPOP";
-type StoreProps = {
-  type: "string";
-  value: string
-} | {
-  type: "list";
-  value: string[]
-};
-
-const store: Record<string, StoreProps> = {};
-const expirationTimes: Record<string, number> = {};
+// If `persistence` is a class instance, adjust accordingly
+const logger = loggerFactory("core");
+const { store, expirationTimes } = persistence;
+// const store: Record<string, StoreProps> = {};
+// const expirationTimes: Record<string, number> = {};
 
 const isExpire = (key: string) => {
   return expirationTimes[key] && expirationTimes[key] < Date.now();
@@ -177,7 +168,7 @@ const commandHandlers: Record<Command, (args: string[]) => void> = {
 
     let res = `*${range.length}\r\n`;
 
-    range.forEach((value) => {
+    range.forEach((value: string) => {
       res += `$${value.length}\r\n${value}\r\n`
     })
 
@@ -263,7 +254,7 @@ const commandHandlers: Record<Command, (args: string[]) => void> = {
 }
 
 const executeCommand = (command: Command, args: string[]) => {
-  logger.log(`Recieved ${command} ${args}`);
+  logger.info(`Recieved ${command} ${args}`);
 
   const handler = commandHandlers[command];
 
@@ -282,7 +273,21 @@ const parseCommand = (data: string) => {
   return { command, args };
 };
 
+const init = () => {
+  if(config.snapshot) {
+    logger.info("Persistence mode: 'snapshot'");
+    persistence.loadSnapshotSync();
+    setInterval(async () => {
+      await persistence.saveSnapshot();
+    }, config.snapshotInterval)
+  } else{
+    logger.info("Persistence mode: 'in-memory'");
+  }
+
+}
+
 export = {
   parseCommand,
   executeCommand,
+  init
 };

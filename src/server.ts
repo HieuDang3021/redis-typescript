@@ -1,5 +1,5 @@
 import net from 'net';
-const { parseCommand, executeCommand } = require('./core');
+const { parseCommand, executeCommand, init } = require('./core');
 
 const logger = require("./utils/logger")("server");
 
@@ -8,7 +8,7 @@ const port = 6379;
 const host = "127.0.0.1";
 
 server.on( "connection", (socket: any) => {
-  logger.log("Client Connected");
+  logger.info("Client Connected");
   
   socket.on( "data", (data: { toString: () => string; }) => {
     let res;
@@ -27,10 +27,11 @@ server.on( "connection", (socket: any) => {
   })
 
   socket.on( "end", () => {
-    logger.log("Client Disconnected");
+    logger.info("Client Disconnected");
   })
 })
 
 server.listen(port, host, () => {
-  logger.log(`Server running at ${host}:${port}`)
+  init();
+  logger.info(`Server running at ${host}:${port}`)
 })

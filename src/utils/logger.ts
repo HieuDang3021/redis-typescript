@@ -28,7 +28,7 @@ const logger = (namespace: string) => {
   };
 
   return {
-    log: (message: string) => log({ mode: "log", message }),
+    info: (message: string) => log({ mode: "log", message }),
     error: (message: string) => log({ mode: "error", message }),
     warn: (message: string) => log({ mode: "warn", message }),
     debug: (message: string) => log({ mode: "debug", message }),

@@ -3,3 +3,9 @@
 
 # out directory
 /dist
+
+# test directory
+/src1
+
+# data
+data.rdb
