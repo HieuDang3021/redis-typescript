@@ -253,8 +253,8 @@ const commandHandlers: Record<Command, (args: string[]) => void> = {
   COMMAND: () => "+OK\r\n",
 }
 
-const executeCommand = (command: Command, args: string[]) => {
-  logger.info(`Recieved ${command} ${args}`);
+const executeCommand = (command: Command, args: string[], replayingFromAof: Boolean = false) => {
+  logger.info(`Recieved ${command} ${args} ${replayingFromAof || "AOF"}`);
 
   const handler = commandHandlers[command];
 
@@ -262,7 +262,16 @@ const executeCommand = (command: Command, args: string[]) => {
     return "-ERR unknown command\r\n";
   }
 
-  return handler(args);
+  const result = handler(args);
+
+  if (
+    config.appendonly &&
+    !replayingFromAof &&
+    config.aofCommand.includes(command)
+  ) {
+    persistence.appendAof(command, args).then(() => {}).catch(logger.error);
+  }
+  return result;
 }
 
 const parseCommand = (data: string) => {
@@ -280,7 +289,10 @@ const init = () => {
     setInterval(async () => {
       await persistence.saveSnapshot();
     }, config.snapshotInterval)
-  } else{
+  } else if(config.appendonly) {
+    logger.info("Persistence mode: 'appendonly'");
+    persistence.replayAofSync(executeCommand);
+  } else {
     logger.info("Persistence mode: 'in-memory'");
   }
 

@@ -10,4 +10,9 @@ declare global {
                           | "LRANGE"
                           | "LPUSH" | "RPUSH"
                           | "LPOP" | "RPOP";
+
+  type aofCommand = "SET" | "DEL" | "EXPIRE"
+                          | "INCR" | "DECR"
+                          | "LPUSH" | "RPUSH"
+                          | "LPOP" | "RPOP";
 }
