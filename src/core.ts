@@ -36,7 +36,7 @@ function getValidList(key: string): string[] | null {
 }
 
 
-const commandHandlers: Record<Command, (args: string[]) => void> = {
+const commandHandlers: Record<Command, (args: string[]) => string> = {
   SET: (args) => {
     if (args.length < 2) {
       return "-ERR wrong number of arguments for 'SET' command\r\n";
@@ -267,7 +267,8 @@ const executeCommand = (command: Command, args: string[], replayingFromAof: Bool
   if (
     config.appendonly &&
     !replayingFromAof &&
-    config.aofCommand.includes(command)
+    config.aofCommand.includes(command) &&
+    !/-ERR|:0/.test(result)
   ) {
     persistence.appendAof(command, args).then(() => {}).catch(logger.error);
   }
